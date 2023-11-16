@@ -32,15 +32,20 @@ error Lottery__NotEnoughEthSent();
  */
 contract Lottery {
     uint256 private immutable i_entranceFee;
+    //? @dev Duration of the lottery in seconds
+    uint256 private immutable i_interval;
     address payable[] private s_players;
+    uint256 private s_lastTimestamp;
 
     /**
      * Events
      */
     event EnteredLottery(address indexed player);
 
-    constructor(uint256 _entranceFee) {
+    constructor(uint256 _entranceFee, uint256 _interval) {
         i_entranceFee = _entranceFee;
+        i_interval = _interval;
+        s_lastTimestamp = block.timestamp;
     }
 
     function enterLottery() external payable {
@@ -54,7 +59,16 @@ contract Lottery {
         emit EnteredLottery(msg.sender);
     }
 
-    function pickWinner() public {}
+    //1. Get a random number
+    //2. Use the random number to pick a player
+    //3. Be automatically called
+    function pickWinner() external {
+        //? check to see if enough time has passed
+        // 1000 - 500 = 500 > 600 -> NOT PASSING
+        if ((block.timestamp - s_lastTimestamp) < i_interval) {
+            revert();
+        }
+    }
 
     /**
      * Getter Functions
