@@ -19,15 +19,16 @@ internal
 private
 view & pure functions */
 
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
+
+error Lottery__NotEnoughEthSent();
 
 /**
  * @title A sample Lottery Contract
  * @author Edoardo Carradori
  * @notice This contract is for creating a sample lottery
- * @dev Implements Chainlink VRFv2 & Automation 
+ * @dev Implements Chainlink VRFv2 & Automation
  */
 contract Lottery {
     uint256 private immutable i_entranceFee;
@@ -36,15 +37,17 @@ contract Lottery {
         i_entranceFee = _entranceFee;
     }
 
-    function enterLottery() public payable {
-
+    function enterLottery() external payable {
+        if (msg.value < i_entranceFee) {
+            revert Lottery__NotEnoughEthSent();
+        }
     }
 
-    function pickWinner() public {
+    function pickWinner() public {}
 
-    }
-
-    /** Getter Functions */
+    /**
+     * Getter Functions
+     */
 
     function getEntranceFee() external view returns (uint256) {
         return i_entranceFee;
