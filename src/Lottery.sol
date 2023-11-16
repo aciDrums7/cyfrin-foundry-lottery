@@ -32,6 +32,12 @@ error Lottery__NotEnoughEthSent();
  */
 contract Lottery {
     uint256 private immutable i_entranceFee;
+    address payable[] private s_players;
+
+    /**
+     * Events
+     */
+    event EnteredLottery(address indexed player);
 
     constructor(uint256 _entranceFee) {
         i_entranceFee = _entranceFee;
@@ -41,6 +47,11 @@ contract Lottery {
         if (msg.value < i_entranceFee) {
             revert Lottery__NotEnoughEthSent();
         }
+        s_players.push(payable(msg.sender));
+        //! Whenever a storage var is updated, an EVENT should be emitted!
+        //1. Makes migration easier
+        //2. Makes front end "indexing" easier
+        emit EnteredLottery(msg.sender);
     }
 
     function pickWinner() public {}
