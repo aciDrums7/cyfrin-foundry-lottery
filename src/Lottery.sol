@@ -22,6 +22,9 @@ view & pure functions */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {VRFCoordinatorV2Interface} from "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
+
 error Lottery__NotEnoughEthSent();
 
 /**
@@ -30,21 +33,43 @@ error Lottery__NotEnoughEthSent();
  * @notice This contract is for creating a sample lottery
  * @dev Implements Chainlink VRFv2 & Automation
  */
-contract Lottery {
+contract Lottery is VRFConsumerBaseV2 {
+    /**
+     * State Variables
+     */
+
+    uint16 private constant REQUEST_CONFIRMATIONS = 3;
+    uint32 private constant NUM_WORDS = 1;
+
     uint256 private immutable i_entranceFee;
     //? @dev Duration of the lottery in seconds
     uint256 private immutable i_interval;
     address payable[] private s_players;
     uint256 private s_lastTimestamp;
+    address private immutable i_vrfCoordinator;
+    bytes32 private immutable i_gasLane;
+    uint64 private immutable i_subscriptionId;
+    uint32 private immutable i_callbackGasLimit;
 
     /**
      * Events
      */
     event EnteredLottery(address indexed player);
 
-    constructor(uint256 _entranceFee, uint256 _interval) {
+    constructor(
+        uint256 _entranceFee,
+        uint256 _interval,
+        address _vrfCoordinator,
+        bytes32 _gasLane,
+        uint64 _subscriptionId,
+        uint32 _callbackGasLimit
+    ) VRFConsumerBaseV2(_vrfCoordinator) {
         i_entranceFee = _entranceFee;
         i_interval = _interval;
+        i_vrfCoordinator = _vrfCoordinator;
+        i_gasLane = _gasLane;
+        i_subscriptionId = _subscriptionId;
+        i_callbackGasLimit = _callbackGasLimit;
         s_lastTimestamp = block.timestamp;
     }
 
@@ -68,6 +93,26 @@ contract Lottery {
         if ((block.timestamp - s_lastTimestamp) < i_interval) {
             revert();
         }
+        //! Will revert if subscription is not set and funded.
+        uint256 requestId = VRFCoordinatorV2Interface(i_vrfCoordinator)
+            .requestRandomWords(
+                i_gasLane,
+                i_subscriptionId,
+                REQUEST_CONFIRMATIONS,
+                i_callbackGasLimit,
+                NUM_WORDS
+            );
+    }
+
+    //? Chainlink VRF returns the random values in a callback to the fulfillRandomWords() function
+    function fulfillRandomWords(
+        uint256 _requestId,
+        uint256[] memory _randomWords
+    ) internal override {
+        // require(s_requests[_requestId].exists, "request not found");
+        // s_requests[_requestId].fulfilled = true;
+        // s_requests[_requestId].randomWords = _randomWords;
+        // emit RequestFulfilled(_requestId, _randomWords);
     }
 
     /**
