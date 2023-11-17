@@ -78,4 +78,19 @@ contract LotteryTest is Test {
         emit EnteredLottery(PLAYER);
         lottery.enterLottery{value: entranceFee}();
     }
+
+    function testCantEnterWhenLotteryIsCalculating() public {
+        //1 Arrange
+        vm.prank(PLAYER);
+        lottery.enterLottery{value: entranceFee}();
+        vm.warp(block.timestamp + interval + 1);
+        //? Not required but Patrick likes it
+        vm.roll(block.number + 1);
+        lottery.performUpkeep("");
+
+        //2 Act / Assert
+        vm.expectRevert(Lottery.Lottery__LotteryNotOpen.selector);
+        vm.prank(PLAYER);
+        lottery.enterLottery{value: entranceFee}();
+    }
 }
