@@ -56,7 +56,6 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     /**
      * State Variables
      */
-
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
     uint32 private constant NUM_WORDS = 1;
 
@@ -72,6 +71,7 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     uint256 private s_lastTimestamp;
     address private s_recentWinner;
     LotteryState private s_lotteryState;
+
     /**
      * Events
      */

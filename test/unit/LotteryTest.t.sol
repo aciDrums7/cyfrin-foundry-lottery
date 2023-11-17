@@ -7,6 +7,8 @@ import {Lottery} from "../../src/Lottery.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 
 contract LotteryTest is Test {
+    event EnteredLottery(address indexed player);
+
     Lottery lottery;
     HelperConfig helperConfig;
 
@@ -34,6 +36,10 @@ contract LotteryTest is Test {
         vm.deal(PLAYER, STARTING_USER_BALANCE);
     }
 
+    /////////////////////
+    // Lottery         //
+    /////////////////////
+
     function testLotteryInitializesInOpenState() public view {
         assert(lottery.getLotteryState() == Lottery.LotteryState.OPEN);
     }
@@ -42,7 +48,7 @@ contract LotteryTest is Test {
     // enterLottery    //
     /////////////////////
 
-    function testLotteryRevertsWhenYouDontPayEnough() public {
+    function testEnterLotteryRevertsWhenYouDontPayEnough() public {
         //1 Arrange
         vm.prank(PLAYER);
 
@@ -51,7 +57,7 @@ contract LotteryTest is Test {
         lottery.enterLottery();
     }
 
-    function testLotteryRecordsPlayersWhenTheyEnter() public {
+    function testEnterLotteryRecordsPlayersWhenTheyEnter() public {
         //1 Arrange
         vm.prank(PLAYER);
 
@@ -61,5 +67,15 @@ contract LotteryTest is Test {
 
         //3 Assert
         assert(playerRecorded == PLAYER);
+    }
+
+    function testEnterLotteryEmitsEventOnEntrance() public {
+        //1 Arrange
+        vm.prank(PLAYER);
+        vm.expectEmit(true, false, false, false, address(lottery));
+
+        //2 Act / Assert
+        emit EnteredLottery(PLAYER);
+        lottery.enterLottery{value: entranceFee}();
     }
 }
