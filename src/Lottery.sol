@@ -26,6 +26,7 @@ import {VRFCoordinatorV2Interface} from "@chainlink/contracts/src/v0.8/interface
 import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
 
 error Lottery__NotEnoughEthSent();
+error Lottery__TransferFailed();
 
 /**
  * @title A sample Lottery Contract
@@ -50,6 +51,7 @@ contract Lottery is VRFConsumerBaseV2 {
     bytes32 private immutable i_gasLane;
     uint64 private immutable i_subscriptionId;
     uint32 private immutable i_callbackGasLimit;
+    address private s_recentWinner;
 
     /**
      * Events
@@ -109,10 +111,13 @@ contract Lottery is VRFConsumerBaseV2 {
         uint256 _requestId,
         uint256[] memory _randomWords
     ) internal override {
-        // require(s_requests[_requestId].exists, "request not found");
-        // s_requests[_requestId].fulfilled = true;
-        // s_requests[_requestId].randomWords = _randomWords;
-        // emit RequestFulfilled(_requestId, _randomWords);
+        uint256 indexOfWinner = _randomWords[0] % s_players.length;
+        address payable winner = s_players[indexOfWinner];
+        s_recentWinner = winner;
+        (bool success, ) = winner.call{value: address(this).balance}("");
+        if (!success) {
+            revert Lottery__TransferFailed();
+        }
     }
 
     /**
