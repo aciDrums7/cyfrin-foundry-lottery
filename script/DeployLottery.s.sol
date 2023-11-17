@@ -15,12 +15,18 @@ contract DeployLottery is Script {
             address vrfCoordinator,
             bytes32 gasLane,
             uint64 subscriptionId, //? How can we fetch the subId?
-            uint32 callbackGasLimit
+            uint32 callbackGasLimit,
+
         ) = helperConfig.activeNetworkConfig();
 
         if (subscriptionId == 0) {
+            //1 We are going to need to create a subscription!
             CreateSubscription createSubscription = new CreateSubscription();
-            subscriptionId = createSubscription.createSubscription(vrfCoordinator);
+            subscriptionId = createSubscription.createSubscription(
+                vrfCoordinator
+            );
+
+            //2 Once created, we need to fund it
         }
 
         vm.startBroadcast();
