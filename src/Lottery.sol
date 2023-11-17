@@ -27,6 +27,7 @@ import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBa
 
 error Lottery__NotEnoughEthSent();
 error Lottery__TransferFailed();
+error Lottery__LotteryNotOpen();
 
 /**
  * @title A sample Lottery Contract
@@ -35,6 +36,14 @@ error Lottery__TransferFailed();
  * @dev Implements Chainlink VRFv2 & Automation
  */
 contract Lottery is VRFConsumerBaseV2 {
+    /**
+     * Type declaration
+     */
+    enum LotteryState {
+        OPEN, // 0
+        CALCULATING // 1
+    }
+
     /**
      * State Variables
      */
@@ -45,14 +54,15 @@ contract Lottery is VRFConsumerBaseV2 {
     uint256 private immutable i_entranceFee;
     //? @dev Duration of the lottery in seconds
     uint256 private immutable i_interval;
-    address payable[] private s_players;
-    uint256 private s_lastTimestamp;
     address private immutable i_vrfCoordinator;
     bytes32 private immutable i_gasLane;
     uint64 private immutable i_subscriptionId;
     uint32 private immutable i_callbackGasLimit;
-    address private s_recentWinner;
 
+    address payable[] private s_players;
+    uint256 private s_lastTimestamp;
+    address private s_recentWinner;
+    LotteryState private s_lotteryState;
     /**
      * Events
      */
@@ -72,12 +82,17 @@ contract Lottery is VRFConsumerBaseV2 {
         i_gasLane = _gasLane;
         i_subscriptionId = _subscriptionId;
         i_callbackGasLimit = _callbackGasLimit;
+
         s_lastTimestamp = block.timestamp;
+        s_lotteryState = LotteryState.OPEN;
     }
 
     function enterLottery() external payable {
         if (msg.value < i_entranceFee) {
             revert Lottery__NotEnoughEthSent();
+        }
+        if (s_lotteryState != LotteryState.OPEN) {
+            revert Lottery__LotteryNotOpen();
         }
         s_players.push(payable(msg.sender));
         //! Whenever a storage var is updated, an EVENT should be emitted!
@@ -95,6 +110,7 @@ contract Lottery is VRFConsumerBaseV2 {
         if ((block.timestamp - s_lastTimestamp) < i_interval) {
             revert();
         }
+        s_lotteryState = LotteryState.CALCULATING;
         //! Will revert if subscription is not set and funded.
         uint256 requestId = VRFCoordinatorV2Interface(i_vrfCoordinator)
             .requestRandomWords(
@@ -114,6 +130,7 @@ contract Lottery is VRFConsumerBaseV2 {
         uint256 indexOfWinner = _randomWords[0] % s_players.length;
         address payable winner = s_players[indexOfWinner];
         s_recentWinner = winner;
+        s_lotteryState = LotteryState.OPEN;
         (bool success, ) = winner.call{value: address(this).balance}("");
         if (!success) {
             revert Lottery__TransferFailed();
