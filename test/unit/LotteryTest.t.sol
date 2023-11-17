@@ -17,7 +17,7 @@ contract LotteryTest is Test {
     uint64 subscriptionId;
     uint32 callbackGasLimit;
 
-    address public player = makeAddr("player");
+    address public PLAYER = makeAddr("player");
     uint256 public constant STARTING_USER_BALANCE = 10 ether;
 
     function setUp() external {
@@ -31,9 +31,35 @@ contract LotteryTest is Test {
             subscriptionId,
             callbackGasLimit
         ) = helperConfig.activeNetworkConfig();
+        vm.deal(PLAYER, STARTING_USER_BALANCE);
     }
 
     function testLotteryInitializesInOpenState() public view {
         assert(lottery.getLotteryState() == Lottery.LotteryState.OPEN);
+    }
+
+    /////////////////////
+    // enterLottery    //
+    /////////////////////
+
+    function testLotteryRevertsWhenYouDontPayEnough() public {
+        //1 Arrange
+        vm.prank(PLAYER);
+
+        //2 Act / Assert
+        vm.expectRevert(Lottery.Lottery__NotEnoughEthSent.selector);
+        lottery.enterLottery();
+    }
+
+    function testLotteryRecordsPlayersWhenTheyEnter() public {
+        //1 Arrange
+        vm.prank(PLAYER);
+
+        //2 Act
+        lottery.enterLottery{value: entranceFee}();
+        address playerRecorded = lottery.getPlayer(0);
+
+        //3 Assert
+        assert(playerRecorded == PLAYER);
     }
 }

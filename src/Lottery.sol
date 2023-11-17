@@ -26,15 +26,6 @@ import {VRFCoordinatorV2Interface} from "@chainlink/contracts/src/v0.8/interface
 import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
 import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
-error Lottery__NotEnoughEthSent();
-error Lottery__TransferFailed();
-error Lottery__LotteryNotOpen();
-error Lottery_UpkeepNotNeeded(
-    uint256 balance,
-    uint256 nPlayers,
-    uint256 lotteryState
-);
-
 /**
  * @title A sample Lottery Contract
  * @author Edoardo Carradori
@@ -42,6 +33,18 @@ error Lottery_UpkeepNotNeeded(
  * @dev Implements Chainlink VRFv2 & Automation
  */
 contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
+    /**
+     * Errors
+     */
+    error Lottery__NotEnoughEthSent();
+    error Lottery__TransferFailed();
+    error Lottery__LotteryNotOpen();
+    error Lottery_UpkeepNotNeeded(
+        uint256 balance,
+        uint256 nPlayers,
+        uint256 lotteryState
+    );
+
     /**
      * Type declaration
      */
@@ -202,5 +205,9 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
 
     function getLotteryState() external view returns (LotteryState) {
         return s_lotteryState;
+    }
+
+    function getPlayer(uint256 indexOfPlayer) external view returns (address) {
+        return s_players[indexOfPlayer];
     }
 }
