@@ -9,6 +9,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {DeployLottery} from "../../script/DeployLottery.s.sol";
 import {Lottery} from "../../src/Lottery.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 contract LotteryTest is Test {
     event EnteredLottery(address indexed player);
@@ -41,6 +42,18 @@ contract LotteryTest is Test {
         vm.deal(PLAYER, STARTING_USER_BALANCE);
     }
 
+    modifier lotteryEntered() {
+        vm.prank(PLAYER);
+        lottery.enterLottery{value: entranceFee}();
+        _;
+    }
+
+    modifier timePassed() {
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        _;
+    }
+
     /////////////////////
     //* Lottery        //
     /////////////////////
@@ -62,12 +75,11 @@ contract LotteryTest is Test {
         lottery.enterLottery();
     }
 
-    function testEnterLotteryRecordsPlayersWhenTheyEnter() public {
-        //1 Arrange
-        vm.prank(PLAYER);
-
+    function testEnterLotteryRecordsPlayersWhenTheyEnter()
+        public
+        /*1 Arrange */ lotteryEntered
+    {
         //2 Act
-        lottery.enterLottery{value: entranceFee}();
         address playerRecorded = lottery.getPlayer(0);
 
         //3 Assert
@@ -84,13 +96,12 @@ contract LotteryTest is Test {
         lottery.enterLottery{value: entranceFee}();
     }
 
-    function testCantEnterWhenLotteryIsCalculating() public {
+    function testCantEnterWhenLotteryIsCalculating()
+        public
+        /*1 Arrange */ lotteryEntered
+        timePassed
+    {
         //1 Arrange
-        vm.prank(PLAYER);
-        lottery.enterLottery{value: entranceFee}();
-        vm.warp(block.timestamp + interval + 1);
-        //? Not required but Patrick likes it
-        vm.roll(block.number + 1);
         lottery.performUpkeep("");
 
         //2 Act / Assert
@@ -103,11 +114,10 @@ contract LotteryTest is Test {
     //* checkUpkeep    //
     /////////////////////
 
-    function testCheckUpkeepReturnsFalseIfItHasNoBalance() public {
-        //1 Arrange
-        vm.warp(block.timestamp + interval + 1);
-        vm.roll(block.number + 1);
-
+    function testCheckUpkeepReturnsFalseIfItHasNoBalance()
+        public
+        /*1 Arrange */ timePassed
+    {
         //2 Act
         (bool upkeepNeeded, ) = lottery.checkUpkeep("");
 
@@ -115,12 +125,12 @@ contract LotteryTest is Test {
         assert(!upkeepNeeded);
     }
 
-    function testCheckUpkeepReturnsFalseIfLotteryNotOpen() public {
+    function testCheckUpkeepReturnsFalseIfLotteryNotOpen()
+        public
+        /*1 Arrange */ lotteryEntered
+        timePassed
+    {
         //1 Arrange
-        vm.prank(PLAYER);
-        lottery.enterLottery{value: entranceFee}();
-        vm.warp(block.timestamp + interval + 1);
-        vm.roll(block.number + 1);
         lottery.performUpkeep("");
 
         //2 Act
@@ -130,25 +140,76 @@ contract LotteryTest is Test {
         assert(!upkeepNeeded);
     }
 
-    function testCheckUpkeepReturnsFalseIfEnoughTimeHasntPassed() public {
-        //1 Arrange
-        vm.prank(PLAYER);
-        lottery.enterLottery{value: entranceFee}();
+    function testCheckUpkeepReturnsFalseIfEnoughTimeHasntPassed()
+        public
+        /*1 Arrange */ lotteryEntered
+    {
         //2 Act
         (bool upkeepNeeded, ) = lottery.checkUpkeep("");
         //3 Assert
         assert(!upkeepNeeded);
     }
 
-    function testCheckUpkeepReturnsTrueIfAllConditionsAreMet() public {
-        //1 Arrange
-        vm.prank(PLAYER);
-        lottery.enterLottery{value: entranceFee}();
-        vm.warp(block.timestamp + interval + 1);
-        vm.roll(block.number + 1);
+    function testCheckUpkeepReturnsTrueIfAllConditionsAreMet()
+        public
+        /*1 Arrange */ lotteryEntered
+        timePassed
+    {
         //2 Act
         (bool upkeepNeeded, ) = lottery.checkUpkeep("");
         //3 Assert
         assert(upkeepNeeded);
+    }
+
+    /////////////////////
+    //* performUpkeep  //
+    /////////////////////
+
+    function testPerformUpkeepCanOnlyRunIfCheckUpkeepIsTrue()
+        public
+        /*1 Arrange */ lotteryEntered
+        timePassed
+    {
+        //2 Act / Assert
+        lottery.performUpkeep("");
+        //? Since there isn't a expectNotRevert() function, if we run performUpkeep
+        //? and it goes through without reverting, the test is successful
+    }
+
+    function testPerformUpkeepRevertsIfCheckUpkeepIsFalse() public {
+        //1 Arrange
+        uint256 currentBalance = 0;
+        uint256 numPlayers = 0;
+        Lottery.LotteryState lotteryState = Lottery.LotteryState.OPEN;
+
+        //2 Act / Assert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Lottery.Lottery_UpkeepNotNeeded.selector,
+                currentBalance,
+                numPlayers,
+                lotteryState
+            )
+        );
+        lottery.performUpkeep("");
+    }
+
+    //? What if I need to test using the output of an event?
+    function testPerformUpkeepUpdatesLotteryStateAndEmitsRequestId()
+        public
+        /*1 Arrange */ lotteryEntered
+        timePassed
+    {
+        //2 Act
+        vm.recordLogs();
+        lottery.performUpkeep(""); // calls requestRandomWords that emits RandomWordsRequested(...)
+        Vm.Log[] memory recordedEvents = vm.getRecordedLogs();
+        //? topic[0] -> the event itself, consequent indexes are event's params
+        bytes32 requestId = recordedEvents[0].topics[2];
+        Lottery.LotteryState lotteryState = lottery.getLotteryState();
+
+        //3 Assert
+        assert(uint256(requestId) > 0);
+        assert(lotteryState == Lottery.LotteryState.CALCULATING);
     }
 }

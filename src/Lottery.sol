@@ -78,6 +78,8 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     event EnteredLottery(address indexed player);
     event PickedWinner(address indexed winner);
 
+    // event RequestedLotteryWinner(uint256 indexed requestId);
+
     constructor(
         uint256 _entranceFee,
         uint256 _interval,
@@ -169,6 +171,8 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
             i_callbackGasLimit,
             NUM_WORDS
         );
+        //! 'requestRandomWords' already emits an event!
+        // emit RequestedLotteryWinner(requestId);
     }
 
     //? Chainlink VRF returns the random values in a callback to the fulfillRandomWords() function
