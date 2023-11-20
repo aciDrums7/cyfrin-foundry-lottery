@@ -38,6 +38,7 @@ contract LotteryTest is Test {
             gasLane,
             subscriptionId,
             callbackGasLimit,
+            ,
 
         ) = helperConfig.activeNetworkConfig();
         vm.deal(PLAYER, STARTING_USER_BALANCE);
@@ -52,6 +53,13 @@ contract LotteryTest is Test {
     modifier timePassed() {
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.number + 1);
+        _;
+    }
+
+    modifier skipFork() {
+        if (block.chainid != 31337) {
+            return;
+        }
         _;
     }
 
@@ -220,7 +228,7 @@ contract LotteryTest is Test {
 
     function testFulfillRandomWordsCanOnlyBeCalledAfterPerformUpkeep(
         /* FUZZ TESTING*/ uint256 randomRequestId
-    ) public /*1 Arrange */ lotteryEntered timePassed {
+    ) public /*1 Arrange */ lotteryEntered timePassed skipFork {
         //1 Arrange
         vm.expectRevert("nonexistent request");
         VRFCoordinatorV2Mock(vrfCoordinator).fulfillRandomWords(
@@ -233,6 +241,7 @@ contract LotteryTest is Test {
         public
         /*1 Arrange */ lotteryEntered
         timePassed
+        skipFork
     {
         //1 Arrange
         uint256 additionalPlayers = 6;

@@ -14,6 +14,7 @@ contract HelperConfig is Script {
         uint64 subscriptionId;
         uint32 callbackGasLimit;
         address linkToken;
+        uint256 deployerKey;
     }
 
     NetworkConfig public activeNetworkConfig;
@@ -28,7 +29,7 @@ contract HelperConfig is Script {
 
     function getSepoliaEthConfig()
         public
-        pure
+        view
         returns (NetworkConfig memory networkConfig)
     {
         return
@@ -39,7 +40,8 @@ contract HelperConfig is Script {
                 gasLane: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c,
                 subscriptionId: 3470, //? check Chainlink VRF UI
                 callbackGasLimit: 500000, //? 500,000 gas!
-                linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789
+                linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
+                deployerKey: vm.envUint("SEPOLIA_PRIVATE_KEY")
             });
     }
 
@@ -69,7 +71,8 @@ contract HelperConfig is Script {
                 gasLane: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c,
                 subscriptionId: 0, //! Our script will add this
                 callbackGasLimit: 500000, //? 500,000 gas!
-                linkToken: address(linkToken)
+                linkToken: address(linkToken),
+                deployerKey: vm.envUint("ANVIL_PRIVATE_KEY")
             });
     }
 }

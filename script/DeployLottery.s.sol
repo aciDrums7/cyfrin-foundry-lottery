@@ -16,14 +16,16 @@ contract DeployLottery is Script {
             bytes32 gasLane,
             uint64 subscriptionId, //? How can we fetch the subId?
             uint32 callbackGasLimit,
-            address linkToken
+            address linkToken,
+            uint256 deployerKey
         ) = helperConfig.activeNetworkConfig();
 
         if (subscriptionId == 0) {
             //1 We are going to need to create a subscription!
             CreateSubscription createSubscription = new CreateSubscription();
             subscriptionId = createSubscription.createSubscription(
-                vrfCoordinator
+                vrfCoordinator,
+                deployerKey
             );
 
             //2 Once created, we need to fund it
@@ -31,11 +33,12 @@ contract DeployLottery is Script {
             fundSubscription.fundSubscription(
                 vrfCoordinator,
                 subscriptionId,
-                linkToken
+                linkToken,
+                deployerKey
             );
         }
 
-        vm.startBroadcast();
+        vm.startBroadcast(deployerKey);
         Lottery lottery = new Lottery(
             entranceFee,
             interval,
@@ -50,7 +53,8 @@ contract DeployLottery is Script {
         addConsumer.addConsumer(
             address(lottery),
             vrfCoordinator,
-            subscriptionId
+            subscriptionId,
+            deployerKey
         );
         return (lottery, helperConfig);
     }
