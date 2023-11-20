@@ -228,4 +228,52 @@ contract LotteryTest is Test {
             address(lottery)
         );
     }
+
+    function testFulfillRandomWordsPicksAWinnerResetsAndSendsMoney()
+        public
+        /*1 Arrange */ lotteryEntered
+        timePassed
+    {
+        //1 Arrange
+        uint256 additionalPlayers = 6;
+        uint256 startingIndex = 1;
+        for (uint256 i = startingIndex; i <= additionalPlayers; i++) {
+            address player = address(uint160(i)); //? equivalent to address(1)
+            hoax(player, STARTING_USER_BALANCE);
+            lottery.enterLottery{value: entranceFee}();
+        }
+
+        uint256 lotteryPrize = entranceFee * (additionalPlayers + 1);
+
+        //2 Act
+        vm.recordLogs();
+        lottery.performUpkeep(""); // calls requestRandomWords that emits RandomWordsRequested(...)
+        Vm.Log[] memory recordedEvents = vm.getRecordedLogs();
+        uint256 requestId = uint256(recordedEvents[0].topics[2]);
+
+        uint256 previousTimeStamp = lottery.getLastTimestamp();
+
+        //! pretend to be Chainlink VRF to get a random number & pick winner
+        VRFCoordinatorV2Mock(vrfCoordinator).fulfillRandomWords(
+            requestId,
+            address(lottery)
+        );
+        recordedEvents = vm.getRecordedLogs();
+        address emittedWinner = address(
+            uint160(uint256(recordedEvents[0].topics[1]))
+        );
+
+        //3 Assert
+        //! THIS IS NOT A BEST PRACTICE!
+        //? Usually we want 1 assert per test
+        assert(lottery.getLotteryState() == Lottery.LotteryState.OPEN);
+        assert(lottery.getRecentWinner() != address(0));
+        assert(lottery.getNumOfPlayers() == 0);
+        assert(lottery.getLastTimestamp() > previousTimeStamp);
+        assert(lottery.getRecentWinner() == emittedWinner);
+        assert(
+            lottery.getRecentWinner().balance ==
+                (STARTING_USER_BALANCE - entranceFee) + lotteryPrize
+        );
+    }
 }
