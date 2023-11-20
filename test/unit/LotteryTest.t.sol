@@ -1,3 +1,7 @@
+//1 Arrange
+//2 Act
+//3 Assert
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -38,7 +42,7 @@ contract LotteryTest is Test {
     }
 
     /////////////////////
-    // Lottery         //
+    //* Lottery        //
     /////////////////////
 
     function testLotteryInitializesInOpenState() public view {
@@ -46,7 +50,7 @@ contract LotteryTest is Test {
     }
 
     /////////////////////
-    // enterLottery    //
+    //* enterLottery   //
     /////////////////////
 
     function testEnterLotteryRevertsWhenYouDontPayEnough() public {
@@ -93,5 +97,58 @@ contract LotteryTest is Test {
         vm.expectRevert(Lottery.Lottery__LotteryNotOpen.selector);
         vm.prank(PLAYER);
         lottery.enterLottery{value: entranceFee}();
+    }
+
+    /////////////////////
+    //* checkUpkeep    //
+    /////////////////////
+
+    function testCheckUpkeepReturnsFalseIfItHasNoBalance() public {
+        //1 Arrange
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+
+        //2 Act
+        (bool upkeepNeeded, ) = lottery.checkUpkeep("");
+
+        //3 Assert
+        assert(!upkeepNeeded);
+    }
+
+    function testCheckUpkeepReturnsFalseIfLotteryNotOpen() public {
+        //1 Arrange
+        vm.prank(PLAYER);
+        lottery.enterLottery{value: entranceFee}();
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        lottery.performUpkeep("");
+
+        //2 Act
+        (bool upkeepNeeded, ) = lottery.checkUpkeep("");
+
+        //3 Assert
+        assert(!upkeepNeeded);
+    }
+
+    function testCheckUpkeepReturnsFalseIfEnoughTimeHasntPassed() public {
+        //1 Arrange
+        vm.prank(PLAYER);
+        lottery.enterLottery{value: entranceFee}();
+        //2 Act
+        (bool upkeepNeeded, ) = lottery.checkUpkeep("");
+        //3 Assert
+        assert(!upkeepNeeded);
+    }
+
+    function testCheckUpkeepReturnsTrueIfAllConditionsAreMet() public {
+        //1 Arrange
+        vm.prank(PLAYER);
+        lottery.enterLottery{value: entranceFee}();
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        //2 Act
+        (bool upkeepNeeded, ) = lottery.checkUpkeep("");
+        //3 Assert
+        assert(upkeepNeeded);
     }
 }
