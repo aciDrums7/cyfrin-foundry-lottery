@@ -10,6 +10,7 @@ import {DeployLottery} from "../../script/DeployLottery.s.sol";
 import {Lottery} from "../../src/Lottery.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/mocks/VRFCoordinatorV2Mock.sol";
 
 contract LotteryTest is Test {
     event EnteredLottery(address indexed player);
@@ -211,5 +212,20 @@ contract LotteryTest is Test {
         //3 Assert
         assert(uint256(requestId) > 0);
         assert(lotteryState == Lottery.LotteryState.CALCULATING);
+    }
+
+    /////////////////////////
+    //* fulfillRandomWords //
+    /////////////////////////
+
+    function testFulfillRandomWordsCanOnlyBeCalledAfterPerformUpkeep(
+        /* FUZZ TESTING*/ uint256 randomRequestId
+    ) public /*1 Arrange */ lotteryEntered timePassed {
+        //1 Arrange
+        vm.expectRevert("nonexistent request");
+        VRFCoordinatorV2Mock(vrfCoordinator).fulfillRandomWords(
+            randomRequestId,
+            address(lottery)
+        );
     }
 }
