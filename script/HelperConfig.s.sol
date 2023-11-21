@@ -27,11 +27,7 @@ contract HelperConfig is Script {
         }
     }
 
-    function getSepoliaEthConfig()
-        public
-        view
-        returns (NetworkConfig memory networkConfig)
-    {
+    function getSepoliaEthConfig() public view returns (NetworkConfig memory) {
         return
             NetworkConfig({
                 entranceFee: 0.01 ether,
@@ -45,10 +41,7 @@ contract HelperConfig is Script {
             });
     }
 
-    function getOrCreateAnvilEthConfig()
-        public
-        returns (NetworkConfig memory networkConfig)
-    {
+    function getOrCreateAnvilEthConfig() public returns (NetworkConfig memory) {
         if (activeNetworkConfig.vrfCoordinator != address(0)) {
             return activeNetworkConfig;
         }
@@ -74,5 +67,9 @@ contract HelperConfig is Script {
                 linkToken: address(linkToken),
                 deployerKey: vm.envUint("ANVIL_PRIVATE_KEY")
             });
+    }
+
+    function setSubscriptionId(uint64 _subscriptionId) public {
+        activeNetworkConfig.subscriptionId = _subscriptionId;
     }
 }

@@ -9,6 +9,10 @@ import {LinkToken} from "../test/mocks/LinkToken.sol";
 import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 
 contract CreateSubscription is Script {
+    function run() external returns (uint64) {
+        return createSubscriptionUsingConfig();
+    }
+
     function createSubscriptionUsingConfig() public returns (uint64) {
         HelperConfig helperConfig = new HelperConfig();
         (, , address vrfCoordinator, , , , , uint256 deployerKey) = helperConfig
@@ -31,14 +35,14 @@ contract CreateSubscription is Script {
         }
         return subId;
     }
-
-    function run() external returns (uint64) {
-        return createSubscriptionUsingConfig();
-    }
 }
 
 contract FundSubscription is Script {
     uint96 public constant FUND_AMOUNT = 3 ether; // LINK
+
+    function run() external {
+        fundSubscriptionUsingConfig();
+    }
 
     function fundSubscriptionUsingConfig() public {
         HelperConfig helperConfig = new HelperConfig();
@@ -82,13 +86,17 @@ contract FundSubscription is Script {
             vm.stopBroadcast();
         }
     }
-
-    function run() external {
-        fundSubscriptionUsingConfig();
-    }
 }
 
 contract AddConsumer is Script {
+    function run() external {
+        address lottery = DevOpsTools.get_most_recent_deployment(
+            "Lottery",
+            block.chainid
+        );
+        addConsumerUsingConfig(lottery);
+    }
+
     function addConsumer(
         address _lottery,
         address _vrfCoordinator,
@@ -116,13 +124,5 @@ contract AddConsumer is Script {
             uint256 deployerKey
         ) = helperConfig.activeNetworkConfig();
         addConsumer(_lottery, vrfCoordinator, subId, deployerKey);
-    }
-
-    function run() external {
-        address lottery = DevOpsTools.get_most_recent_deployment(
-            "Lottery",
-            block.chainid
-        );
-        addConsumerUsingConfig(lottery);
     }
 }
