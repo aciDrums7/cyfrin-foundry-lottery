@@ -51,3 +51,5 @@ addConsumer:
 fundSubscription:
 	@forge script script/Interactions.s.sol:FundSubscription $(NETWORK_ARGS)
 
+solveChallenge:
+	@forge create src/contracts/SolveLessonNineChallenge.sol:SolveLessonNineChallenge --rpc-url $(SEPOLIA_RPC_URL) --private-key $(SEPOLIA_PRIVATE_KEY) --etherscan-api-key $(ETHERSCAN_API_KEY) --constructor-args $(LESSON_NINE_CHALLENGE)
